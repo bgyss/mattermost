@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS AgentTaskEvents;
+DROP TABLE IF EXISTS AgentMemory;
+DROP TABLE IF EXISTS AgentTasks;
+DROP TABLE IF EXISTS AgentDefinitions;
+DROP TABLE IF EXISTS Workgroups;

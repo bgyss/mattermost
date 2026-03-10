@@ -102,6 +102,26 @@ func (_m *Store) AutoTranslation() store.AutoTranslationStore {
 	return r0
 }
 
+// Agent provides a mock function with no fields
+func (_m *Store) Agent() store.AgentStore {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Agent")
+	}
+
+	var r0 store.AgentStore
+	if rf, ok := ret.Get(0).(func() store.AgentStore); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(store.AgentStore)
+		}
+	}
+
+	return r0
+}
+
 // Bot provides a mock function with no fields
 func (_m *Store) Bot() store.BotStore {
 	ret := _m.Called()

@@ -695,6 +695,17 @@ export function handleEvent(msg: WebSocketMessage) {
     case WebSocketEvents.ShowToast:
         dispatch(handleShowToast(msg));
         break;
+    case WebSocketEvents.AgentTaskSubmitted:
+    case WebSocketEvents.AgentTaskComplete:
+    case WebSocketEvents.AgentTaskFailed:
+        dispatch(handleAgentTaskUpdate(msg));
+        break;
+    case WebSocketEvents.AgentTokenStream:
+        dispatch(handleAgentTokenStream(msg));
+        break;
+    case WebSocketEvents.AgentDelegation:
+        dispatch(handleAgentDelegation(msg));
+        break;
     default:
     }
 
@@ -2170,5 +2181,57 @@ function handleShowToast(msg: WebSocketMessages.ShowToast): ThunkActionFunc<void
                 },
             }));
         }
+    };
+}
+
+// ---------------------------------------------------------------------------
+// Agent runtime WebSocket handlers (Phase 0 stubs — Phase 2+ fills these in)
+// ---------------------------------------------------------------------------
+
+export function handleAgentTaskUpdate(msg: any): ThunkActionFunc<void> {
+    return (dispatch) => {
+        const task = msg.data?.task;
+        if (!task) {
+            return;
+        }
+        dispatch({
+            type: 'AGENT_TASK_STATUS_UPDATED',
+            data: task,
+        });
+    };
+}
+
+export function handleAgentTokenStream(msg: any): ThunkActionFunc<void> {
+    return (dispatch) => {
+        const {task_id, token} = msg.data ?? {};
+        if (!task_id || token === undefined) {
+            return;
+        }
+        dispatch({
+            type: 'AGENT_TOKEN_STREAM',
+            data: {task_id, token},
+        });
+    };
+}
+
+export function handleAgentDelegation(msg: any): ThunkActionFunc<void> {
+    return (dispatch) => {
+        const {task_id, parent_task_id, root_task_id, agent_id, status} = msg.data ?? {};
+        if (!task_id) {
+            return;
+        }
+        // Build a partial AgentTask from the flat WS payload so the delegation
+        // tree component can render the DAG immediately without a REST round-trip.
+        dispatch({
+            type: 'RECEIVED_AGENT_TASK',
+            data: {
+                id: task_id,
+                parent_task_id: parent_task_id ?? '',
+                root_task_id: root_task_id ?? task_id,
+                agent_id: agent_id ?? '',
+                status: status ?? 'pending',
+                tokens_used: 0,
+            },
+        });
     };
 }

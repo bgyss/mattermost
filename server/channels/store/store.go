@@ -101,6 +101,7 @@ type Store interface {
 	Recap() RecapStore
 	ReadReceipt() ReadReceiptStore
 	TemporaryPost() TemporaryPostStore
+	Agent() AgentStore
 }
 
 type RetentionPolicyStore interface {
@@ -1314,4 +1315,46 @@ type RecapStore interface {
 	DeleteRecapChannels(recapId string) error
 	SaveRecapChannel(recapChannel *model.RecapChannel) error
 	GetRecapChannelsByRecapId(recapId string) ([]*model.RecapChannel, error)
+}
+
+// AgentStore provides data access for the agent runtime.
+type AgentStore interface {
+	// Workgroup operations
+	SaveWorkgroup(wg *model.Workgroup) (*model.Workgroup, error)
+	UpdateWorkgroup(wg *model.Workgroup) (*model.Workgroup, error)
+	GetWorkgroup(id string) (*model.Workgroup, error)
+	GetWorkgroupByName(teamId, name string) (*model.Workgroup, error)
+	GetWorkgroupsForTeam(teamId string) ([]*model.Workgroup, error)
+	DeleteWorkgroup(id string) error
+
+	// AgentDefinition operations
+	SaveAgentDefinition(def *model.AgentDefinition) (*model.AgentDefinition, error)
+	UpdateAgentDefinition(def *model.AgentDefinition) (*model.AgentDefinition, error)
+	GetAgentDefinition(id string) (*model.AgentDefinition, error)
+	GetAgentDefinitionsByWorkgroup(workgroupId string) ([]*model.AgentDefinition, error)
+	GetAgentDefinitionByBotUserId(botUserId string) (*model.AgentDefinition, error)
+	DeleteAgentDefinition(id string) error
+
+	// AgentTask operations
+	SaveAgentTask(task *model.AgentTask) (*model.AgentTask, error)
+	UpdateAgentTask(task *model.AgentTask) (*model.AgentTask, error)
+	GetAgentTask(id string) (*model.AgentTask, error)
+	GetActiveTasksForAgent(agentId string) ([]*model.AgentTask, error)
+	GetTaskTree(rootTaskId string) ([]*model.AgentTask, error)
+	ClaimPendingTask(agentId, serverId string) (*model.AgentTask, error)
+
+	// AgentMemory operations
+	SaveAgentMemory(mem *model.AgentMemory) (*model.AgentMemory, error)
+	GetAgentMemory(agentId, scope, scopeId, key string) (*model.AgentMemory, error)
+	GetAgentMemoryByScope(agentId, scope, scopeId string) ([]*model.AgentMemory, error)
+	DeleteAgentMemory(agentId, scope, scopeId string) error
+	DeleteExpiredAgentMemory() error
+
+	// AgentTaskEvent operations
+	SaveAgentTaskEvent(event *model.AgentTaskEvent) (*model.AgentTaskEvent, error)
+	GetAgentTaskEvents(taskId string, page, perPage int) ([]*model.AgentTaskEvent, error)
+
+	// Agent coordination channel operations
+	// GetAgentCoordinationChannels returns all ChannelTypeAgentDirect channels for the team.
+	GetAgentCoordinationChannels(teamId string) ([]*model.Channel, error)
 }

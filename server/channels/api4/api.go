@@ -167,6 +167,8 @@ type Routes struct {
 
 	Agents      *mux.Router // 'api/v4/agents'
 	LLMServices *mux.Router // 'api/v4/llmservices'
+	Workgroups  *mux.Router // 'api/v4/workgroups'
+	Workgroup   *mux.Router // 'api/v4/workgroups/{workgroup_id}'
 }
 
 type API struct {
@@ -319,6 +321,8 @@ func Init(srv *app.Server) (*API, error) {
 
 	api.BaseRoutes.Agents = api.BaseRoutes.APIRoot.PathPrefix("/agents").Subrouter()
 	api.BaseRoutes.LLMServices = api.BaseRoutes.APIRoot.PathPrefix("/llmservices").Subrouter()
+	api.BaseRoutes.Workgroups = api.BaseRoutes.APIRoot.PathPrefix("/workgroups").Subrouter()
+	api.BaseRoutes.Workgroup = api.BaseRoutes.APIRoot.PathPrefix("/workgroups/{workgroup_id:[A-Za-z0-9]+}").Subrouter()
 
 	api.InitUser()
 	api.InitBot()
@@ -375,6 +379,7 @@ func Init(srv *app.Server) (*API, error) {
 	api.InitAccessControlPolicy()
 	api.InitContentFlagging()
 	api.InitAgents()
+	api.InitWorkgroups()
 
 	// If we allow testing then listen for manual testing URL hits
 	if *srv.Config().ServiceSettings.EnableTesting {

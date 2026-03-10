@@ -105,6 +105,14 @@ const (
 	WebsocketEventFileDownloadRejected                WebsocketEventType = "file_download_rejected"
 	WebsocketEventShowToast                           WebsocketEventType = "show_toast"
 
+	// Agent events
+	WebsocketEventAgentTaskSubmitted WebsocketEventType = "agent_task_submitted"
+	WebsocketEventAgentTaskComplete  WebsocketEventType = "agent_task_complete"
+	WebsocketEventAgentTaskFailed    WebsocketEventType = "agent_task_failed"
+	WebsocketEventAgentTokenStream   WebsocketEventType = "agent_token_stream"
+	WebsocketEventAgentThinking      WebsocketEventType = "agent_thinking"
+	WebsocketEventAgentDelegation    WebsocketEventType = "agent_delegation"
+
 	WebSocketMsgTypeResponse = "response"
 	WebSocketMsgTypeEvent    = "event"
 )

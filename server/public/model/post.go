@@ -60,6 +60,7 @@ const (
 	PostCustomTypePrefix          = "custom_"
 	PostTypeReminder              = "reminder"
 	PostTypeBurnOnRead            = "burn_on_read"
+	PostTypeAgentDelegation       = "agent_delegation"
 
 	PostFileidsMaxRunes   = 300
 	PostFilenamesMaxRunes = 4000

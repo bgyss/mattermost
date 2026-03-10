@@ -115,6 +115,7 @@ type SqlStoreStores struct {
 	recap                      store.RecapStore
 	readReceipt                store.ReadReceiptStore
 	temporaryPost              store.TemporaryPostStore
+	agent                      store.AgentStore
 }
 
 type SqlStore struct {
@@ -289,6 +290,7 @@ func New(settings model.SqlSettings, logger mlog.LoggerIFace, metrics einterface
 	store.stores.recap = newSqlRecapStore(store)
 	store.stores.readReceipt = newSqlReadReceiptStore(store, metrics)
 	store.stores.temporaryPost = newSqlTemporaryPostStore(store, metrics)
+	store.stores.agent = newSqlAgentStore(store)
 
 	store.stores.preference.(*SqlPreferenceStore).deleteUnusedFeatures()
 
@@ -895,6 +897,10 @@ func (ss *SqlStore) ReadReceipt() store.ReadReceiptStore {
 
 func (ss *SqlStore) TemporaryPost() store.TemporaryPostStore {
 	return ss.stores.temporaryPost
+}
+
+func (ss *SqlStore) Agent() store.AgentStore {
+	return ss.stores.agent
 }
 
 func (ss *SqlStore) DropAllTables() {

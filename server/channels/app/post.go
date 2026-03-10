@@ -412,6 +412,12 @@ func (a *App) CreatePost(rctx request.CTX, post *model.Post, channel *model.Chan
 				return true
 			}, plugin.MessageHasBeenPostedID)
 		})
+
+		// Agent runtime hook: detect @mentions of agent bot users and submit tasks
+		agentPost := rpost
+		a.Srv().Go(func() {
+			a.HandleAgentPostHook(rctx, agentPost)
+		})
 	}
 
 	// Normally, we would let the API layer call PreparePostForClient, but we do it here since it also needs

@@ -4,6 +4,7 @@
 import {combineReducers} from 'redux';
 
 import admin from './admin';
+import agentTasks from './agent_tasks';
 import agents from './agents';
 import apps from './apps';
 import bots from './bots';
@@ -13,6 +14,7 @@ import channels from './channels';
 import cloud from './cloud';
 import contentFlagging from './content_flagging';
 import emojis from './emojis';
+import workgroups from './workgroups';
 import files from './files';
 import general from './general';
 import groups from './groups';
@@ -65,4 +67,6 @@ export default combineReducers({
     scheduledPosts,
     sharedChannels,
     contentFlagging,
+    workgroups,
+    agentTasks,
 });

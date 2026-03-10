@@ -779,6 +779,36 @@ func (c *Context) RequireRecapId() *Context {
 	return c
 }
 
+func (c *Context) RequireAgentId() *Context {
+	if c.Err != nil {
+		return c
+	}
+	if !model.IsValidId(c.Params.AgentId) {
+		c.SetInvalidURLParam("agent_id")
+	}
+	return c
+}
+
+func (c *Context) RequireTaskId() *Context {
+	if c.Err != nil {
+		return c
+	}
+	if !model.IsValidId(c.Params.TaskId) {
+		c.SetInvalidURLParam("task_id")
+	}
+	return c
+}
+
+func (c *Context) RequireWorkgroupId() *Context {
+	if c.Err != nil {
+		return c
+	}
+	if !model.IsValidId(c.Params.WorkgroupId) {
+		c.SetInvalidURLParam("workgroup_id")
+	}
+	return c
+}
+
 func (c *Context) GetRemoteID(r *http.Request) string {
 	return r.Header.Get(model.HeaderRemoteclusterId)
 }

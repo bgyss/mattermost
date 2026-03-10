@@ -29,6 +29,10 @@ const (
 	ChannelTypePrivate ChannelType = "P"
 	ChannelTypeDirect  ChannelType = "D"
 	ChannelTypeGroup   ChannelType = "G"
+	// ChannelTypeAgentDirect is a private coordination channel between two agents.
+	// System administrators can read and join these channels without a prior invitation,
+	// enabling full observability of agent-to-agent communication.
+	ChannelTypeAgentDirect ChannelType = "A"
 
 	ChannelGroupMaxUsers       = 8
 	ChannelGroupMinUsers       = 3
@@ -287,7 +291,7 @@ func (o *Channel) IsValid() *AppError {
 		return NewAppError("Channel.IsValid", "model.channel.is_valid.1_or_more.app_error", nil, "id="+o.Id, http.StatusBadRequest)
 	}
 
-	if !(o.Type == ChannelTypeOpen || o.Type == ChannelTypePrivate || o.Type == ChannelTypeDirect || o.Type == ChannelTypeGroup) {
+	if !(o.Type == ChannelTypeOpen || o.Type == ChannelTypePrivate || o.Type == ChannelTypeDirect || o.Type == ChannelTypeGroup || o.Type == ChannelTypeAgentDirect) {
 		return NewAppError("Channel.IsValid", "model.channel.is_valid.type.app_error", nil, "id="+o.Id, http.StatusBadRequest)
 	}
 

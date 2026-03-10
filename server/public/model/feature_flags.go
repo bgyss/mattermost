@@ -94,6 +94,9 @@ type FeatureFlags struct {
 	// FEATURE_FLAG_REMOVAL: EnableAIRecaps - Remove this when GA is released
 	EnableAIRecaps bool
 
+	// EnableAIAgents enables the multi-agent orchestration platform (agentruntime).
+	EnableAIAgents bool
+
 	// Enable LIKE-based CJK (Chinese, Japanese, Korean) search for PostgreSQL
 	CJKSearch bool
 }
@@ -139,6 +142,8 @@ func (f *FeatureFlags) SetDefaults() {
 	f.EnableAIPluginBridge = false
 
 	f.EnableAIRecaps = false
+
+	f.EnableAIAgents = true
 
 	f.CJKSearch = false
 }

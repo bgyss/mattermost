@@ -3,6 +3,8 @@
 
 import type {AdminState} from './admin';
 import type {LLMService} from './agents';
+import type {AgentTasksState} from './agent_tasks';
+import type {WorkgroupsState} from './workgroups';
 import type {AppsState} from './apps';
 import type {Bot} from './bots';
 import type {ChannelBookmarksState} from './channel_bookmarks';
@@ -101,6 +103,8 @@ export type GlobalState = {
             remotesByRemoteId?: Record<string, RemoteClusterInfo>;
         };
         contentFlagging: ContentFlaggingState;
+        agentTasks: AgentTasksState;
+        workgroups: WorkgroupsState;
     };
     errors: any[];
     requests: {

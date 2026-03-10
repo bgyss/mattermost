@@ -69,6 +69,7 @@ import (
 	"github.com/mattermost/mattermost/server/v8/channels/utils"
 	"github.com/mattermost/mattermost/server/v8/config"
 	"github.com/mattermost/mattermost/server/v8/einterfaces"
+	"github.com/mattermost/mattermost/server/v8/platform/services/agentruntime"
 	"github.com/mattermost/mattermost/server/v8/platform/services/awsmeter"
 	"github.com/mattermost/mattermost/server/v8/platform/services/cache"
 	"github.com/mattermost/mattermost/server/v8/platform/services/remotecluster"
@@ -135,6 +136,7 @@ type Server struct {
 	serviceMux           sync.RWMutex
 	remoteClusterService remotecluster.RemoteClusterServiceIFace
 	sharedChannelService SharedChannelServiceIFace // TODO: platform: move to platform package
+	agentRuntimeService  agentruntime.AgentRuntimeServiceIFace
 
 	phase2PermissionsMigrationComplete bool
 
@@ -823,6 +825,19 @@ func (s *Server) Start() error {
 	if err := s.Channels().Start(); err != nil {
 		return errors.Wrap(err, "Unable to start channels")
 	}
+
+	// Start the AgentRuntimeService (always on — no license gate required for core agent infra).
+	agentAppInstance := New(ServerConnector(s.Channels()))
+	ars, arsErr := agentruntime.NewAgentRuntimeService(s, agentAppInstance)
+	if arsErr != nil {
+		return errors.Wrap(arsErr, "unable to create AgentRuntimeService")
+	}
+	if startErr := ars.Start(); startErr != nil {
+		return errors.Wrap(startErr, "unable to start AgentRuntimeService")
+	}
+	s.serviceMux.Lock()
+	s.agentRuntimeService = ars
+	s.serviceMux.Unlock()
 
 	if s.joinCluster && s.platform.Cluster() != nil {
 		s.registerClusterHandlers()
@@ -1714,6 +1729,13 @@ func (s *Server) GetSharedChannelSyncService() SharedChannelServiceIFace {
 	s.serviceMux.RLock()
 	defer s.serviceMux.RUnlock()
 	return s.sharedChannelService
+}
+
+// GetAgentRuntimeService returns the AgentRuntimeService. Never nil after server start.
+func (s *Server) GetAgentRuntimeService() agentruntime.AgentRuntimeServiceIFace {
+	s.serviceMux.RLock()
+	defer s.serviceMux.RUnlock()
+	return s.agentRuntimeService
 }
 
 // GetMetrics returns the server's Metrics interface. Exposing via a method

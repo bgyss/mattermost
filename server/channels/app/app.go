@@ -14,6 +14,7 @@ import (
 	"github.com/mattermost/mattermost/server/public/shared/mlog"
 	"github.com/mattermost/mattermost/server/public/shared/timezones"
 	"github.com/mattermost/mattermost/server/v8/einterfaces"
+	"github.com/mattermost/mattermost/server/v8/platform/services/agentruntime"
 	"github.com/mattermost/mattermost/server/v8/platform/services/imageproxy"
 	"github.com/mattermost/mattermost/server/v8/platform/services/searchengine"
 	"github.com/mattermost/mattermost/server/v8/platform/shared/templates"
@@ -61,6 +62,11 @@ func (a *App) Channels() *Channels {
 }
 func (a *App) Srv() *Server {
 	return a.ch.srv
+}
+
+// AgentRuntimeService returns the AgentRuntimeService from the server.
+func (a *App) AgentRuntimeService() agentruntime.AgentRuntimeServiceIFace {
+	return a.ch.srv.GetAgentRuntimeService()
 }
 func (a *App) Log() *mlog.Logger {
 	return a.ch.srv.Log()

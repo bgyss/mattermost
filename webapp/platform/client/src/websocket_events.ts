@@ -93,4 +93,12 @@ export const enum WebSocketEvents {
     PostTranslationUpdated = 'post_translation_updated',
     FileDownloadRejected = 'file_download_rejected',
     ShowToast = 'show_toast',
+
+    // Agent runtime events
+    AgentTaskSubmitted = 'agent_task_submitted',
+    AgentTaskComplete = 'agent_task_complete',
+    AgentTaskFailed = 'agent_task_failed',
+    AgentTokenStream = 'agent_token_stream',
+    AgentThinking = 'agent_thinking',
+    AgentDelegation = 'agent_delegation',
 }

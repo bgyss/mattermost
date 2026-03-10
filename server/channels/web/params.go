@@ -121,6 +121,11 @@ type Params struct {
 
 	// Custom Profile Attributes
 	FieldId string
+
+	// Agent runtime
+	AgentId     string
+	TaskId      string
+	WorkgroupId string
 }
 
 var getChannelMembersForUserRegex = regexp.MustCompile("/api/v4/users/[A-Za-z0-9]{26}/channel_members")
@@ -289,6 +294,9 @@ func ParamsFromRequest(r *http.Request) *Params {
 	params.AccessControlPolicyEnforced, _ = strconv.ParseBool(query.Get("access_control_policy_enforced"))
 	params.ExcludeAccessControlPolicyEnforced, _ = strconv.ParseBool(query.Get("exclude_access_control_policy_enforced"))
 	params.ContentReviewerId = props["content_reviewer_id"]
+	params.AgentId = props["agent_id"]
+	params.TaskId = props["task_id"]
+	params.WorkgroupId = props["workgroup_id"]
 
 	if val := query.Get("group_source"); val != "" {
 		switch val {
