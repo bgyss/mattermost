@@ -1,0 +1,556 @@
+// Agent Command Center — full-screen layout
+// Applied via body class toggled by AgentCommandCenter component on mount/unmount.
+
+body.agent-command-center {
+    // Override the default app grid so the command center gets all vertical space.
+    #root {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    // Hide the sidebars that belong to the normal channel view.
+    #TeamSidebar,
+    .sidebar--left,
+    .sidebar--right,
+    .channel-view,
+    .backstage-content {
+        display: none !important;
+    }
+
+    // The command center itself fills the remaining space below the global header.
+    .agent-command-center-root {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        overflow: hidden;
+        background-color: var(--center-channel-bg);
+    }
+}
+
+// ---- Status bar ----
+.acc-status-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    background-color: var(--sidebar-header-bg);
+    color: var(--sidebar-header-text-color);
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    flex-shrink: 0;
+    overflow-x: auto;
+}
+
+.acc-status-bar__metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+
+    .acc-status-bar__metric-value {
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .acc-status-bar__metric-label {
+        font-size: 11px;
+        opacity: 0.75;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+}
+
+.acc-status-bar__divider {
+    width: 1px;
+    height: 32px;
+    background-color: rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+}
+
+.acc-status-bar__workgroup-select {
+    margin-left: auto;
+    padding: 4px 8px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.acc-status-bar__new-task-btn {
+    padding: 6px 14px;
+    background-color: var(--button-bg);
+    color: var(--button-color);
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &:hover {
+        opacity: 0.9;
+    }
+}
+
+// ---- Main area ----
+.acc-main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+// ---- Agent grid ----
+.acc-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: grid;
+    gap: 12px;
+    align-content: start;
+
+    &.acc-grid--1col { grid-template-columns: 1fr; }
+    &.acc-grid--2col { grid-template-columns: repeat(2, 1fr); }
+    &.acc-grid--3col { grid-template-columns: repeat(3, 1fr); }
+}
+
+// ---- Agent tile ----
+.acc-tile {
+    background-color: var(--center-channel-bg);
+    border: 1px solid rgba(var(--center-channel-color-rgb), 0.12);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    min-height: 180px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+        border-color: var(--button-bg);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    &.acc-tile--selected {
+        border-color: var(--button-bg);
+        box-shadow: 0 0 0 2px rgba(var(--button-bg-rgb), 0.3);
+    }
+
+    &.acc-tile--running {
+        border-color: var(--online-indicator);
+    }
+
+    &.acc-tile--failed {
+        border-color: var(--error-text);
+    }
+}
+
+.acc-tile__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid rgba(var(--center-channel-color-rgb), 0.08);
+}
+
+.acc-tile__avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: var(--button-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--button-color);
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.acc-tile__name {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--center-channel-color);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.acc-tile__workgroup-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background-color: rgba(var(--button-bg-rgb), 0.15);
+    color: var(--button-bg);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+
+.acc-tile__status-pill {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    flex-shrink: 0;
+
+    &.acc-tile__status-pill--idle {
+        background-color: rgba(var(--center-channel-color-rgb), 0.08);
+        color: rgba(var(--center-channel-color-rgb), 0.6);
+    }
+
+    &.acc-tile__status-pill--running {
+        background-color: rgba(63, 195, 128, 0.15);
+        color: #3fc380;
+    }
+
+    &.acc-tile__status-pill--pending,
+    &.acc-tile__status-pill--claimed {
+        background-color: rgba(255, 185, 0, 0.15);
+        color: #f0a400;
+    }
+
+    &.acc-tile__status-pill--complete {
+        background-color: rgba(var(--button-bg-rgb), 0.12);
+        color: var(--button-bg);
+    }
+
+    &.acc-tile__status-pill--failed {
+        background-color: rgba(var(--error-text-color-rgb), 0.12);
+        color: var(--error-text);
+    }
+}
+
+.acc-tile__status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+
+    &.acc-tile__status-dot--pulse {
+        animation: acc-dot-pulse 1.4s ease-in-out infinite;
+    }
+}
+
+@keyframes acc-dot-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.75); }
+}
+
+.acc-tile__body {
+    flex: 1;
+    padding: 8px 12px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 11px;
+    color: rgba(var(--center-channel-color-rgb), 0.75);
+    overflow: hidden;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 60px;
+}
+
+.acc-tile__tool-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 12px 8px;
+}
+
+.acc-tile__tool-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background-color: rgba(var(--center-channel-color-rgb), 0.06);
+    color: rgba(var(--center-channel-color-rgb), 0.65);
+    font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+.acc-tile__footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-top: 1px solid rgba(var(--center-channel-color-rgb), 0.08);
+    font-size: 11px;
+    color: rgba(var(--center-channel-color-rgb), 0.55);
+}
+
+.acc-tile__footer-stat {
+    display: flex;
+    flex-direction: column;
+
+    .acc-tile__footer-stat-value {
+        font-weight: 600;
+        color: var(--center-channel-color);
+        font-size: 12px;
+    }
+
+    .acc-tile__footer-stat-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+}
+
+.acc-tile__dispatch-btn {
+    margin-left: auto;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background-color: var(--button-bg);
+    color: var(--button-color);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+
+    &:hover { opacity: 0.85; }
+}
+
+// ---- Detail panel (right drawer) ----
+.acc-detail-panel {
+    width: 420px;
+    min-width: 320px;
+    max-width: 50vw;
+    border-left: 1px solid rgba(var(--center-channel-color-rgb), 0.12);
+    background-color: var(--center-channel-bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.acc-detail-panel__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(var(--center-channel-color-rgb), 0.1);
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.acc-detail-panel__close-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    color: rgba(var(--center-channel-color-rgb), 0.6);
+    padding: 0 4px;
+
+    &:hover { color: var(--center-channel-color); }
+}
+
+.acc-detail-panel__tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(var(--center-channel-color-rgb), 0.1);
+    overflow-x: auto;
+    flex-shrink: 0;
+}
+
+.acc-detail-panel__tab {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(var(--center-channel-color-rgb), 0.6);
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+
+    &.acc-detail-panel__tab--active {
+        color: var(--button-bg);
+        border-bottom-color: var(--button-bg);
+    }
+
+    &:hover:not(.acc-detail-panel__tab--active) {
+        color: var(--center-channel-color);
+    }
+}
+
+.acc-detail-panel__content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+// task row in active tasks tab
+.acc-task-row {
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(var(--center-channel-color-rgb), 0.1);
+    margin-bottom: 8px;
+    font-size: 12px;
+
+    .acc-task-row__header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .acc-task-row__input {
+        color: rgba(var(--center-channel-color-rgb), 0.8);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-bottom: 6px;
+    }
+
+    .acc-task-row__stats {
+        display: flex;
+        gap: 12px;
+        color: rgba(var(--center-channel-color-rgb), 0.55);
+    }
+}
+
+// memory row
+.acc-memory-row {
+    padding: 8px 12px;
+    border-radius: 6px;
+    background-color: rgba(var(--center-channel-color-rgb), 0.04);
+    margin-bottom: 6px;
+    font-size: 12px;
+
+    .acc-memory-row__key {
+        font-weight: 600;
+        font-family: monospace;
+        margin-bottom: 3px;
+    }
+
+    .acc-memory-row__value {
+        color: rgba(var(--center-channel-color-rgb), 0.75);
+        word-break: break-word;
+    }
+
+    .acc-memory-row__scope {
+        font-size: 10px;
+        text-transform: uppercase;
+        color: rgba(var(--center-channel-color-rgb), 0.45);
+        margin-top: 3px;
+    }
+}
+
+// settings form
+.acc-settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--center-channel-color);
+    }
+
+    input,
+    textarea,
+    select {
+        padding: 7px 10px;
+        border: 1px solid rgba(var(--center-channel-color-rgb), 0.2);
+        border-radius: 4px;
+        background-color: var(--center-channel-bg);
+        color: var(--center-channel-color);
+        font-size: 13px;
+        font-family: inherit;
+
+        &:focus {
+            outline: none;
+            border-color: var(--button-bg);
+        }
+    }
+
+    textarea {
+        min-height: 90px;
+        resize: vertical;
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 12px;
+    }
+}
+
+.acc-settings-save-btn {
+    padding: 8px 16px;
+    background-color: var(--button-bg);
+    color: var(--button-color);
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    align-self: flex-start;
+
+    &:hover { opacity: 0.88; }
+    &:disabled { opacity: 0.5; cursor: default; }
+}
+
+// dispatch modal / inline form
+.acc-dispatch-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background-color: rgba(var(--center-channel-color-rgb), 0.04);
+    border-radius: 6px;
+    margin-top: 8px;
+
+    textarea {
+        min-height: 72px;
+        resize: none;
+        padding: 8px;
+        border: 1px solid rgba(var(--center-channel-color-rgb), 0.2);
+        border-radius: 4px;
+        background-color: var(--center-channel-bg);
+        color: var(--center-channel-color);
+        font-size: 13px;
+        font-family: inherit;
+
+        &:focus {
+            outline: none;
+            border-color: var(--button-bg);
+        }
+    }
+
+    .acc-dispatch-form__actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+}
+
+.acc-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: rgba(var(--center-channel-color-rgb), 0.5);
+    gap: 12px;
+    text-align: center;
+    padding: 32px;
+
+    .acc-empty-state__title {
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .acc-empty-state__subtitle {
+        font-size: 13px;
+    }
+}

@@ -1333,6 +1333,7 @@ type AgentStore interface {
 	GetAgentDefinition(id string) (*model.AgentDefinition, error)
 	GetAgentDefinitionsByWorkgroup(workgroupId string) ([]*model.AgentDefinition, error)
 	GetAgentDefinitionByBotUserId(botUserId string) (*model.AgentDefinition, error)
+	ListAllAgentDefinitions() ([]*model.AgentDefinition, error)
 	DeleteAgentDefinition(id string) error
 
 	// AgentTask operations

@@ -6,6 +6,7 @@
 import type {AccessControlPolicy, CELExpressionError, AccessControlTestResult, AccessControlPoliciesResult, AccessControlPolicyChannelsResult, AccessControlVisualAST, AccessControlAttributes, AccessControlPolicyActiveUpdate} from '@mattermost/types/access_control';
 import type {ClusterInfo, AnalyticsRow, SchemaMigration, LogFilterQuery} from '@mattermost/types/admin';
 import type {Agent, LLMService} from '@mattermost/types/agents';
+import type {AgentDefinition, AgentMemory, AgentMetrics, AgentTask} from '@mattermost/types/agent_tasks';
 import type {AppBinding, AppCallRequest, AppCallResponse} from '@mattermost/types/apps';
 import type {Audit} from '@mattermost/types/audits';
 import type {UserAutocomplete, AutocompleteSuggestion} from '@mattermost/types/autocomplete';
@@ -3428,6 +3429,58 @@ export default class Client4 {
         return this.doFetch<LLMService[]>(
             `${this.getBaseRoute()}/llmservices`,
             {method: 'get'},
+        );
+    };
+
+    getAgentDefinitions = () => {
+        return this.doFetch<AgentDefinition[]>(
+            `${this.getAgentsRoute()}/definitions`,
+            {method: 'get'},
+        );
+    };
+
+    getActiveAgentTasks = (agentId: string) => {
+        return this.doFetch<AgentTask[]>(
+            `${this.getAgentsRoute()}/${agentId}/tasks/active`,
+            {method: 'get'},
+        );
+    };
+
+    getAgentMetrics = () => {
+        return this.doFetch<AgentMetrics[]>(
+            `${this.getAgentsRoute()}/metrics`,
+            {method: 'get'},
+        );
+    };
+
+    patchAgentDefinition = (id: string, patch: Partial<AgentDefinition>) => {
+        return this.doFetch<AgentDefinition>(
+            `${this.getAgentsRoute()}/${id}`,
+            {method: 'patch', body: JSON.stringify(patch)},
+        );
+    };
+
+    getAgentTaskTree = (taskId: string) => {
+        return this.doFetch<AgentTask[]>(
+            `${this.getAgentsRoute()}/tasks/${taskId}/tree`,
+            {method: 'get'},
+        );
+    };
+
+    getAgentMemory = (agentId: string, scope?: string) => {
+        const url = scope ?
+            `${this.getAgentsRoute()}/${agentId}/memory?scope=${scope}` :
+            `${this.getAgentsRoute()}/${agentId}/memory`;
+        return this.doFetch<AgentMemory[]>(
+            url,
+            {method: 'get'},
+        );
+    };
+
+    submitAgentTask = (agentId: string, input: string, channelId?: string) => {
+        return this.doFetch<AgentTask>(
+            `${this.getAgentsRoute()}/tasks`,
+            {method: 'post', body: JSON.stringify({agent_id: agentId, input: {text: input}, channel_id: channelId ?? ''})},
         );
     };
 

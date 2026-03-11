@@ -160,6 +160,20 @@ func (_m *AgentStore) GetAgentDefinitionByBotUserId(botUserId string) (*model.Ag
 	return r0, ret.Error(1)
 }
 
+// ListAllAgentDefinitions provides a mock function with given fields:
+func (_m *AgentStore) ListAllAgentDefinitions() ([]*model.AgentDefinition, error) {
+	ret := _m.Called()
+	var r0 []*model.AgentDefinition
+	if rf, ok := ret.Get(0).(func() []*model.AgentDefinition); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.AgentDefinition)
+		}
+	}
+	return r0, ret.Error(1)
+}
+
 // DeleteAgentDefinition provides a mock function with given fields: id
 func (_m *AgentStore) DeleteAgentDefinition(id string) error {
 	ret := _m.Called(id)

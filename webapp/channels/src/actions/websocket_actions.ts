@@ -706,6 +706,9 @@ export function handleEvent(msg: WebSocketMessage) {
     case WebSocketEvents.AgentDelegation:
         dispatch(handleAgentDelegation(msg));
         break;
+    case WebSocketEvents.AgentThinking:
+        dispatch(handleAgentThinking(msg));
+        break;
     default:
     }
 
@@ -2231,6 +2234,26 @@ export function handleAgentDelegation(msg: any): ThunkActionFunc<void> {
                 agent_id: agent_id ?? '',
                 status: status ?? 'pending',
                 tokens_used: 0,
+            },
+        });
+    };
+}
+
+export function handleAgentThinking(msg: any): ThunkActionFunc<void> {
+    return (dispatch) => {
+        const {task_id, agent_id, event_type, payload} = msg.data ?? {};
+        if (!task_id) {
+            return;
+        }
+        dispatch({
+            type: 'RECEIVED_AGENT_TASK_EVENT',
+            data: {
+                id: `${task_id}-${Date.now()}`,
+                task_id,
+                agent_id: agent_id ?? '',
+                event_type: event_type ?? 'thinking',
+                payload: payload ?? {},
+                create_at: Date.now(),
             },
         });
     };

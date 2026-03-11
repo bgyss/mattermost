@@ -19,6 +19,7 @@ func (api *API) InitAgents() {
 	api.BaseRoutes.LLMServices.Handle("", api.APISessionRequired(getLLMServices)).Methods(http.MethodGet)
 
 	// Agent Definition CRUD
+	api.BaseRoutes.Agents.Handle("/definitions", api.APISessionRequired(listAgentDefinitions)).Methods(http.MethodGet)
 	api.BaseRoutes.Agents.Handle("", api.APISessionRequired(createAgentDefinition)).Methods(http.MethodPost)
 	api.BaseRoutes.Agents.Handle("/{agent_id:[A-Za-z0-9]+}", api.APISessionRequired(patchAgentDefinition)).Methods(http.MethodPatch)
 	api.BaseRoutes.Agents.Handle("/{agent_id:[A-Za-z0-9]+}", api.APISessionRequired(deleteAgentDefinition)).Methods(http.MethodDelete)
@@ -106,6 +107,17 @@ func getLLMServices(c *Context, w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------
 // AgentDefinition handlers
 // ---------------------------------------------------------------------------
+
+func listAgentDefinitions(c *Context, w http.ResponseWriter, r *http.Request) {
+	defs, appErr := c.App.ListAllAgentDefinitions(c.AppContext)
+	if appErr != nil {
+		c.Err = appErr
+		return
+	}
+	if err := json.NewEncoder(w).Encode(defs); err != nil {
+		c.Logger.Warn("Error while writing response", mlog.Err(err))
+	}
+}
 
 func createAgentDefinition(c *Context, w http.ResponseWriter, r *http.Request) {
 	var def model.AgentDefinition

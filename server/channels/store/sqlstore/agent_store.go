@@ -421,6 +421,52 @@ func (s *SqlAgentStore) GetAgentDefinitionByBotUserId(botUserId string) (*model.
 		row.PoolSize, row.MemoryConfig, row.OwnerUserId, row.CreateAt, row.UpdateAt, row.DeleteAt)
 }
 
+func (s *SqlAgentStore) ListAllAgentDefinitions() ([]*model.AgentDefinition, error) {
+	type agentRow struct {
+		Id              string
+		WorkgroupId     string
+		Role            string
+		BotUserId       string
+		DisplayName     string
+		SystemPrompt    string
+		LLMServiceId    string
+		ModelId         string
+		ModelParameters string
+		Tools           string
+		Capabilities    string
+		MaxConcurrency  int
+		PoolSize        int
+		MemoryConfig    string
+		OwnerUserId     string
+		CreateAt        int64
+		UpdateAt        int64
+		DeleteAt        int64
+	}
+
+	var rows []agentRow
+	err := s.GetReplica().Select(&rows,
+		`SELECT Id, WorkgroupId, Role, BotUserId, DisplayName, SystemPrompt, LLMServiceId, ModelId,
+			ModelParameters, Tools, Capabilities, MaxConcurrency, PoolSize, MemoryConfig,
+			OwnerUserId, CreateAt, UpdateAt, DeleteAt
+		FROM AgentDefinitions WHERE DeleteAt=0 ORDER BY CreateAt ASC`)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list all agent definitions")
+	}
+
+	defs := make([]*model.AgentDefinition, 0, len(rows))
+	for _, row := range rows {
+		def, err := unmarshalAgentDefinition(row.Id, row.WorkgroupId, row.Role, row.BotUserId,
+			row.DisplayName, row.SystemPrompt, row.LLMServiceId, row.ModelId,
+			row.ModelParameters, row.Tools, row.Capabilities, row.MaxConcurrency,
+			row.PoolSize, row.MemoryConfig, row.OwnerUserId, row.CreateAt, row.UpdateAt, row.DeleteAt)
+		if err != nil {
+			return nil, err
+		}
+		defs = append(defs, def)
+	}
+	return defs, nil
+}
+
 func (s *SqlAgentStore) DeleteAgentDefinition(id string) error {
 	_, err := s.GetMaster().Exec(
 		`UPDATE AgentDefinitions SET DeleteAt=$1, UpdateAt=$2 WHERE Id=$3`,

@@ -23,7 +23,8 @@ function byId(state: Record<string, AgentTask> = {}, action: MMReduxAction): Rec
         const task: AgentTask = action.data;
         return {...state, [task.id]: task};
     }
-    case AgentTaskActionTypes.RECEIVED_AGENT_TASK_TREE: {
+    case AgentTaskActionTypes.RECEIVED_AGENT_TASK_TREE:
+    case 'RECEIVED_ACTIVE_TASKS': {
         const tasks: AgentTask[] = action.data;
         const next = {...state};
         for (const task of tasks) {

@@ -805,6 +805,15 @@ func (a *App) GetAgentDefinition(rctx request.CTX, id string) (*model.AgentDefin
 	return def, nil
 }
 
+// ListAllAgentDefinitions returns all non-deleted agent definitions across all workgroups.
+func (a *App) ListAllAgentDefinitions(rctx request.CTX) ([]*model.AgentDefinition, *model.AppError) {
+	defs, err := a.Srv().Store().Agent().ListAllAgentDefinitions()
+	if err != nil {
+		return nil, model.NewAppError("ListAllAgentDefinitions", "app.agent_definition.list_all.app_error", nil, err.Error(), http.StatusInternalServerError)
+	}
+	return defs, nil
+}
+
 // GetAgentDefinitionsByWorkgroup returns all agent definitions for a workgroup.
 func (a *App) GetAgentDefinitionsByWorkgroup(rctx request.CTX, workgroupId string) ([]*model.AgentDefinition, *model.AppError) {
 	defs, err := a.Srv().Store().Agent().GetAgentDefinitionsByWorkgroup(workgroupId)

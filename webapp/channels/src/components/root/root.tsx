@@ -60,6 +60,7 @@ const ClaimController = makeAsyncComponent('ClaimController', lazy(() => import(
 const TermsOfService = makeAsyncComponent('TermsOfService', lazy(() => import('components/terms_of_service')));
 const LinkingLandingPage = makeAsyncComponent('LinkingLandingPage', lazy(() => import('components/linking_landing_page')));
 const AdminConsole = makeAsyncComponent('AdminConsole', lazy(() => import('components/admin_console')));
+const AgentCommandCenter = makeAsyncComponent('AgentCommandCenter', lazy(() => import('components/agent_command_center')));
 const SelectTeam = makeAsyncComponent('SelectTeam', lazy(() => import('components/select_team')));
 const Authorize = makeAsyncComponent('Authorize', lazy(() => import('components/authorize')));
 const CreateTeam = makeAsyncComponent('CreateTeam', lazy(() => import('components/create_team')));
@@ -373,6 +374,17 @@ export default class Root extends React.PureComponent<Props, State> {
                             <LoggedInRoute
                                 path={'/admin_console'}
                                 component={AdminConsole}
+                            />
+                            <RootRedirect/>
+                        </Switch>
+                    </Route>
+                    <Route
+                        path={'/agents'}
+                    >
+                        <Switch>
+                            <LoggedInRoute
+                                path={'/agents'}
+                                component={AgentCommandCenter}
                             />
                             <RootRedirect/>
                         </Switch>

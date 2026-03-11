@@ -2,6 +2,8 @@
 
 This guide walks you through running a minimal two-workgroup OpenClaw agent demo on your local machine.
 
+> **New:** Once agents are provisioned, use the **[Agent Command Center](./AGENT_COMMAND_CENTER.md)** (`/agents`) for a real-time visual overview of all agents, live token streams, delegation trees, and task management — no terminal required. See the [tutorial](./AGENT_COMMAND_CENTER_TUTORIAL.md) for a guided walkthrough.
+
 ## Architecture
 
 ```
@@ -307,6 +309,25 @@ curl -s "http://localhost:8065/api/v4/agents/$SALES_HEAD_ID/memory?scope=global"
 curl -s http://localhost:8065/api/v4/agents/$SALES_HEAD_ID/tasks/active \
   -H "Authorization: Bearer $TOKEN" | jq '[.[] | {id, status, created_at: .create_at}]'
 ```
+
+---
+
+## Step 7 — Use the Agent Command Center (UI)
+
+All of the visibility commands above are also available in the browser. After provisioning:
+
+1. Open `http://localhost:8065/agents` (or click **Agents** in the top-right header).
+2. You will see a tile for every provisioned agent — CEO, Sales Head, and specialists.
+3. Send the CEO task from Step 5 Scenario A, then watch the tiles update in real time:
+   - CEO tile → "Running" (green, pulsing dot)
+   - Sales Head tile → activates as soon as delegation happens
+   - Specialist tiles → activate if Sales Head further delegates
+4. Click the Sales Head tile → **Delegation Tree** tab to see the full parent→child chain.
+5. Click any tile → **Memory** tab to inspect what the agent has remembered between tasks.
+6. Click any tile → **Settings** tab to live-patch the system prompt or model.
+
+For the full Agent Command Center guide see [AGENT_COMMAND_CENTER.md](./AGENT_COMMAND_CENTER.md).
+For a step-by-step tutorial see [AGENT_COMMAND_CENTER_TUTORIAL.md](./AGENT_COMMAND_CENTER_TUTORIAL.md).
 
 ---
 

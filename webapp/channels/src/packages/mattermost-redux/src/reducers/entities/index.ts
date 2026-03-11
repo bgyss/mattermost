@@ -5,6 +5,7 @@ import {combineReducers} from 'redux';
 
 import admin from './admin';
 import agentTasks from './agent_tasks';
+import {agentDefinitions, agentMetrics, agentMemory} from './agent_definitions';
 import agents from './agents';
 import apps from './apps';
 import bots from './bots';
@@ -69,4 +70,7 @@ export default combineReducers({
     contentFlagging,
     workgroups,
     agentTasks,
+    agentDefinitions,
+    agentMetrics,
+    agentMemory,
 });

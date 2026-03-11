@@ -6,3 +6,81 @@ mockery = "2.53.3"
 
 [env]
 MM_DEV = "true"
+
+# ── Server (Go) tasks ──────────────────────────────────────────────────────────
+
+[tasks."build:server"]
+description = "Compile the Mattermost server binary for the current OS"
+dir = "server"
+run = "go build -trimpath -ldflags '-X github.com/mattermost/mattermost/server/public/model.BuildNumber=dev' -o bin/mattermost ./cmd/mattermost"
+
+[tasks."build:server:linux"]
+description = "Cross-compile the server binary for linux/amd64"
+dir = "server"
+run = "GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-X github.com/mattermost/mattermost/server/public/model.BuildNumber=dev' -o bin/mattermost-linux-amd64 ./cmd/mattermost"
+
+[tasks."build:mmctl"]
+description = "Build the mmctl CLI tool"
+dir = "server"
+run = "go build -trimpath -o bin/mmctl ./cmd/mmctl"
+
+[tasks."check:server"]
+description = "Vet the Go server packages"
+dir = "server"
+run = "go vet ./channels/... ./platform/... ./public/..."
+
+[tasks."test:server:quick"]
+description = "Run quick server tests (no Docker required)"
+dir = "server/public"
+run = "go test ./model/... -short"
+
+# ── Webapp (Node/TypeScript) tasks ─────────────────────────────────────────────
+
+[tasks."install:webapp"]
+description = "Install webapp npm dependencies"
+dir = "webapp"
+run = "npm install"
+
+[tasks."build:webapp"]
+description = "Production build of the webapp (requires npm install first)"
+dir = "webapp"
+run = "npm run build"
+
+[tasks."check:webapp"]
+description = "Run ESLint on the webapp"
+dir = "webapp"
+run = "npm run check --workspace=channels"
+
+[tasks."check:types"]
+description = "TypeScript type-check the webapp"
+dir = "webapp"
+run = "npm run check-types"
+
+[tasks."test:webapp"]
+description = "Run Jest tests for the webapp"
+dir = "webapp"
+run = "npm run test --workspace=channels"
+
+# ── Combined tasks ─────────────────────────────────────────────────────────────
+
+[tasks."build"]
+description = "Build everything: server binary + webapp (runs build:server and build:webapp)"
+depends = ["build:server", "build:webapp"]
+
+[tasks."build:server-only"]
+description = "Build only the Go server binary (no webapp, no Docker)"
+depends = ["build:server"]
+
+[tasks."check"]
+description = "Run all static checks: Go vet + webapp ESLint + TypeScript"
+depends = ["check:server", "check:webapp", "check:types"]
+
+[tasks."dev:server"]
+description = "Run the server in development mode (requires Docker for Postgres)"
+dir = "server"
+run = "go run ./cmd/mattermost"
+
+[tasks."dev:webapp"]
+description = "Start the webpack dev server with hot reload"
+dir = "webapp"
+run = "npm run dev-server --workspace=channels"
