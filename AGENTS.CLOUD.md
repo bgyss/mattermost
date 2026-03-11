@@ -109,6 +109,7 @@ Supported service types: `openai`, `openaicompatible`, `azure`, `anthropic`, `as
 - License errors in logs ("Failed to read license set in environment") are normal — enterprise features requiring a license won't be available but the server runs fine.
 - The enterprise repo must be on a compatible branch with the main repo.
 - The VM's global gitconfig may have `url.*.insteadOf` rules embedding the default Cursor agent token, which only has access to `mattermost/mattermost`. The update script cleans these and sets up `gh auth` with `CURSOR_GH_TOKEN` instead.
+- **Preferred VCS is `jj` (Jujutsu).** Use `jj git fetch` / `jj git push` to sync with remotes. Raw `git` commands still work but should be avoided in favour of `jj` equivalents — see the "Version Control (jj)" section in `CLAUDE.md`.
 
 ### Lint, test, and build
 
