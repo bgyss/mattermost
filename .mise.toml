@@ -1,11 +1,12 @@
-[tools]
-node = "24.11"
-go = "1.24.13"
-golangci-lint = "1.64.8"
-mockery = "2.53.3"
+# Tools are provided by Nix via devenv.nix — run `nix develop` or `devenv shell`
+# to enter the dev environment. mise is used only as a task runner here.
+# [tools] is intentionally omitted; toolchain = nixpkgs via devenv.
 
 [env]
+_.file = ".env.agents"
 MM_DEV = "true"
+OPENCLAW_GATEWAY_URL = "http://127.0.0.1:18789"
+MM_FEATUREFLAGS_ENABLEAIAGENTS = "true"
 
 # ── Server (Go) tasks ──────────────────────────────────────────────────────────
 
@@ -84,3 +85,48 @@ run = "go run ./cmd/mattermost"
 description = "Start the webpack dev server with hot reload"
 dir = "webapp"
 run = "npm run dev-server --workspace=channels"
+
+# ── Agent demo tasks ───────────────────────────────────────────────────────────
+
+[tasks."agents:db"]
+description = "Start PostgreSQL via devenv (Nix-managed, no Docker required)"
+run = "devenv services up postgres"
+
+[tasks."agents:server"]
+description = "Run the Mattermost server with OpenClaw agent env vars (requires agents:docker)"
+dir = "server"
+run = "go run ./cmd/mattermost"
+
+[tasks."agents:webapp"]
+description = "Start the webapp dev server (hot reload) for the agent demo"
+dir = "webapp"
+run = "npm run dev-server --workspace=channels"
+
+[tasks."agents:provision"]
+description = "Provision CEO + Sales demo agents via REST API (run after server is up)"
+run = "bash scripts/provision-demo.sh"
+
+[tasks."agents:status"]
+description = "List all provisioned agent definitions"
+run = """
+TOKEN=$(curl -sf -X POST http://localhost:8065/api/v4/users/login \
+  -H 'Content-Type: application/json' \
+  -d "{\"login_id\":\"${MM_ADMIN_EMAIL:-admin@example.com}\",\"password\":\"${MM_ADMIN_PASSWORD}\"}" \
+  -D - 2>/dev/null | grep -i '^token:' | awk '{print $2}' | tr -d '\\r')
+curl -sf http://localhost:8065/api/v4/agents/definitions \
+  -H "Authorization: Bearer $TOKEN" | jq '[.[] | {id, display_name, role, llm_service_id}]'
+"""
+
+# ── Docs tasks (MkDocs) ────────────────────────────────────────────────────────
+
+[tasks."docs:install"]
+description = "Install MkDocs + plugins into .venv via uv (tools provided by Nix/devenv)"
+run = "uv sync --extra docs"
+
+[tasks."docs:serve"]
+description = "Live-preview docs at http://localhost:8000 with hot reload"
+run = "uv run mkdocs serve"
+
+[tasks."docs:build"]
+description = "Build static docs site to site/"
+run = "uv run mkdocs build --strict"

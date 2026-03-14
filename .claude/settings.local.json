@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/briangyss/src/mattermost -name \"AGENTS*\" -o -name \"*DEMO*\" -o -name \".env*\" -o -name \"next.config*\" 2>/dev/null | head -20)"
+    ]
+  }
+}

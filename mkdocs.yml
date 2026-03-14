@@ -1,0 +1,85 @@
+site_name: Mattermost Agent Platform
+site_description: Multi-agent orchestration platform built on Mattermost — architecture, tutorials, and API reference.
+site_author: Mattermost
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.annotate
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Quickstart: getting-started/quickstart.md
+    - Prerequisites: getting-started/prerequisites.md
+  - Architecture:
+    - Platform Overview: architecture/overview.md
+    - Backend (Go): architecture/backend.md
+    - Frontend (React): architecture/frontend.md
+    - LLM Providers: architecture/llm-providers.md
+    - PostgreSQL Scaling Strategy: architecture/postgres-scaling-strategy.md
+  - Agent Command Center:
+    - Overview: command-center/index.md
+    - Component Reference: command-center/components.md
+    - Redux & State: command-center/redux.md
+    - WebSocket Events: command-center/websocket.md
+    - CSS & Theming: command-center/theming.md
+    - Extending the UI: command-center/extending.md
+  - Tutorial:
+    - Walkthrough: tutorial/command-center.md
+  - Demo Setup:
+    - Local Demo (mise): demo/local-setup.md
+    - Scenarios: demo/scenarios.md
+    - Customisation: demo/customisation.md
+  - API Reference:
+    - REST Endpoints: api/rest.md
+    - WebSocket Events: api/websocket.md
+  - Cloud Environment:
+    - Cursor Cloud Setup: cloud/cursor-cloud.md
+
+plugins:
+  - search

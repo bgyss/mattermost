@@ -2,29 +2,34 @@
   description = "Mattermost multi-agent platform dev shell";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    devenv.url  = "github:cachix/devenv";
+    devenv.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = nixpkgs.legacyPackages.${system}; in {
-        devShells.default = pkgs.mkShell {
-          packages = with pkgs; [
-            go_1_24
-            nodejs_24
-            docker
-            docker-compose
-            golangci-lint
-            postgresql_16
-            jq
-            git
-            gh
-          ];
-          shellHook = ''
-            export GOPATH="$HOME/.go"
-            export PATH="$GOPATH/bin:$PATH"
-          '';
-        };
-      });
+  nixConfig = {
+    extra-trusted-public-keys = [
+      "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
+    ];
+    extra-substituters = [
+      "https://devenv.cachix.org"
+    ];
+  };
+
+  outputs = { self, nixpkgs, devenv, ... }@inputs:
+    let
+      systems = [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" "aarch64-linux" ];
+      forAllSystems = nixpkgs.lib.genAttrs systems;
+    in {
+      devShells = forAllSystems (system:
+        let pkgs = nixpkgs.legacyPackages.${system}; in {
+          default = devenv.lib.mkShell {
+            inherit inputs pkgs;
+            modules = [
+              { devenv.root = builtins.toString ./.; }
+              ./devenv.nix
+            ];
+          };
+        });
+    };
 }

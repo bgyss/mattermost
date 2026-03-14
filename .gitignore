@@ -1,4 +1,9 @@
 
+.env.agents
+site/
+.venv/
+.devenv/
+.direnv/
 logs
 .DS_Store
 node_modules
