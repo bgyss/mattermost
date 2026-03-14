@@ -2,6 +2,18 @@
 
 The full multi-agent demo can be spun up with `mise` tasks. No manual `export` or curl sequences needed.
 
+## Dev credentials (local testing)
+
+When running a fresh local instance, use these defaults to create the first admin account via the signup page at `http://localhost:9005/signup_user_complete`:
+
+| Field | Value |
+|-------|-------|
+| Email | `admin@example.com` |
+| Username | `admin` |
+| Password | `Admin1234!` |
+
+> These are **local dev defaults only** — never use them in any shared or production environment.
+
 ## One-time setup
 
 ```bash
