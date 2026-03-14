@@ -1,11 +1,13 @@
 { pkgs, lib, config, ... }:
 
 {
+  # Disable Cachix binary cache (requires trusted-user in nix.conf, not needed locally)
+  cachix.enable = false;
   # ── Languages ────────────────────────────────────────────────────────────────
 
   languages.go = {
     enable = true;
-    package = pkgs.go_1_24;
+    package = pkgs.go_1_25;
   };
 
   languages.javascript = {
@@ -39,7 +41,7 @@
     listen_addresses = "127.0.0.1";
     port = 5432;
     initialDatabases = [{ name = "mattermost_test"; }];
-    initialScript = pkgs.writeText "pg-init.sql" ''
+    initialScript = ''
       DO $$
       BEGIN
         IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'mmuser') THEN
@@ -59,7 +61,6 @@
     MM_FEATUREFLAGS_ENABLEAIAGENTS = "true";
     # Matches the default in server/public/model/config.go
     MM_SQLSETTINGS_DATASOURCE     = "postgres://mmuser:mostest@127.0.0.1/mattermost_test?sslmode=disable&connect_timeout=10&binary_parameters=yes";
-    GOPATH                        = "$HOME/.go";
   };
 
   # ── Processes (devenv up starts all three) ────────────────────────────────────
@@ -79,7 +80,6 @@
   # ── Shell hook ─────────────────────────────────────────────────────────────────
 
   enterShell = ''
-    export PATH="$GOPATH/bin:$PATH"
     # Auto-load .env.agents if present (OpenClaw token, admin credentials, etc.)
     if [ -f "${config.devenv.root}/.env.agents" ]; then
       set -a; source "${config.devenv.root}/.env.agents"; set +a
