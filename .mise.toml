@@ -117,6 +117,54 @@ curl -sf http://localhost:8065/api/v4/agents/definitions \
   -H "Authorization: Bearer $TOKEN" | jq '[.[] | {id, display_name, role, llm_service_id}]'
 """
 
+# ── CI environment tasks ───────────────────────────────────────────────────────
+# These scripts manage a fully ephemeral postgres + server environment.
+# Run from within the devenv shell (direnv allow) so pg_ctl/go/etc. are on PATH.
+
+[tasks."ci:up"]
+description = "Init postgres, build + start server, seed admin/team/agents — full clean environment"
+run = "bash scripts/ci-up.sh"
+
+[tasks."ci:down"]
+description = "Stop server + postgres and wipe all ephemeral state (data dir, logs, PIDs)"
+run = "bash scripts/ci-down.sh"
+
+[tasks."ci:reset"]
+description = "Tear down then bring up a fresh environment in one shot"
+run = ["mise run ci:down", "mise run ci:up"]
+
+[tasks."ci:up:e2e"]
+description = "Full CI environment + webpack dev server for Playwright E2E tests"
+run = """
+mise run ci:up
+cd webapp && nohup npm run dev-server --workspace=channels > .devenv/webapp.log 2>&1 &
+echo $! > .devenv/webapp.pid
+echo "Waiting for webpack..."
+for i in $(seq 1 60); do
+  curl -sf http://localhost:9005 -o /dev/null && echo "Webapp ready" && break
+  sleep 5
+done
+"""
+
+[tasks."ci:logs"]
+description = "Tail server and postgres logs"
+run = "tail -f .devenv/server.log .devenv/postgres.log 2>/dev/null"
+
+[tasks."ci:status"]
+description = "Show status of CI environment processes"
+run = """
+echo "=== PostgreSQL ==="
+pg_isready -h 127.0.0.1 -p 5432 2>/dev/null && echo "running" || echo "not running"
+echo "=== Mattermost server ==="
+if [ -f .devenv/server.pid ] && kill -0 $(cat .devenv/server.pid) 2>/dev/null; then
+  echo "running (PID $(cat .devenv/server.pid))"
+else
+  echo "not running"
+fi
+echo "=== Health check ==="
+curl -sf http://localhost:8065/api/v4/system/ping 2>/dev/null | jq '.status' || echo "not reachable"
+"""
+
 # ── Docs tasks (MkDocs) ────────────────────────────────────────────────────────
 
 [tasks."docs:install"]

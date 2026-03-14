@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Quick tests (no database, no server) ─────────────────────────────────────
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v27
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run quick server tests
+        run: nix develop --command bash -c "cd server/public && go test ./model/... -short"
+
+  # ── Integration tests (full stack: postgres + server + seeded fixtures) ───────
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    env:
+      MM_BASE_URL:      http://localhost:8065
+      MM_ADMIN_EMAIL:   admin@example.com
+      MM_ADMIN_PASSWORD: Admin1234!
+      MM_TEAM_NAME:     mattermost-dev
+      MM_SKIP_AGENTS:   "1"   # no LLM token in CI by default
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v27
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('server/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('webapp/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
+
+      - name: Start CI environment
+        run: nix develop --command bash scripts/ci-up.sh
+
+      - name: Run server integration tests
+        run: nix develop --command bash -c "cd server && go test ./channels/app/... -short -count=1"
+
+      - name: Tear down CI environment
+        if: always()
+        run: nix develop --command bash scripts/ci-down.sh
+
+      - name: Upload server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-log
+          path: .devenv/server.log
+          retention-days: 3
+
+  # ── E2E tests (Playwright, requires webapp) ───────────────────────────────────
+  e2e:
+    name: E2E tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'   # only on push, not every PR
+    env:
+      MM_BASE_URL:       http://localhost:8065
+      MM_ADMIN_EMAIL:    admin@example.com
+      MM_ADMIN_PASSWORD: Admin1234!
+      MM_TEAM_NAME:      mattermost-dev
+      MM_SKIP_AGENTS:    "1"
+      PW_BASE_URL:       http://localhost:9005
+      PW_ADMIN_USERNAME: admin
+      PW_ADMIN_PASSWORD: Admin1234!
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v27
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('server/go.sum') }}
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('webapp/package-lock.json') }}
+
+      - name: Start CI environment (server + postgres)
+        run: nix develop --command bash scripts/ci-up.sh
+
+      - name: Install webapp deps and start dev server
+        run: |
+          nix develop --command bash -c "cd webapp && npm install"
+          nix develop --command bash -c "cd webapp && nohup npm run dev-server --workspace=channels > .devenv/webapp.log 2>&1 &"
+          # Wait for webpack to finish initial build
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:9005 -o /dev/null && break
+            sleep 5
+          done
+
+      - name: Install Playwright browsers
+        run: nix develop --command bash -c "cd e2e-tests/playwright && npm ci && npx playwright install --with-deps chromium"
+
+      - name: Run Playwright tests
+        run: nix develop --command bash -c "cd e2e-tests/playwright && npm run test:ci"
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e-tests/playwright/playwright-report/
+          retention-days: 7
+
+      - name: Tear down
+        if: always()
+        run: |
+          pkill -f "dev-server" 2>/dev/null || true
+          nix develop --command bash scripts/ci-down.sh
