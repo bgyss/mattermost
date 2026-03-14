@@ -222,14 +222,6 @@ testEnv.ExecuteWorkflow(agentruntime.DelegationChainWorkflow, taskInput)
 
 ---
 
-## Flox
-
-[Flox](https://flox.dev/) is a cross-platform package manager built on Nix — comparable to devenv which this project already uses. It is **not a CI/CD execution platform**.
-
-Flox is relevant for ensuring reproducible test environment tooling (especially the Nix toolchain), and its MCP server integration allows AI coding agents to discover and install dependencies. It is not relevant to the live vs. smoke testing split.
-
----
-
 ## Summary
 
 For the immediate future, **GitHub Actions is sufficient** with proper environment protection rules for live tests. The main constraint is the 6-hour limit — for Tier 3 long-running benchmarks, the simplest solution is self-hosted GH Actions runners on a cheap EC2 instance or a persistent Fly.io machine that CI jobs SSH into.

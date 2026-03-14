@@ -82,6 +82,9 @@ nav:
   - Testing:
     - Agent Testing Strategy: testing/agent-testing-strategy.md
     - CI Platform Comparison: testing/ci-platform-comparison.md
+    - "Deep Dive: Fly.io Sprites": testing/flyio-sprites-deep-dive.md
+    - "Deep Dive: Buildkite": testing/buildkite-deep-dive.md
+    - "Deep Dive: Temporal": testing/temporal-deep-dive.md
   - Cloud Environment:
     - Cursor Cloud Setup: cloud/cursor-cloud.md
 
