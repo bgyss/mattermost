@@ -62,6 +62,7 @@ nav:
     - Frontend (React): architecture/frontend.md
     - LLM Providers: architecture/llm-providers.md
     - PostgreSQL Scaling Strategy: architecture/postgres-scaling-strategy.md
+    - Messages DB Scaling Strategy: architecture/messages-scaling-strategy.md
   - Agent Command Center:
     - Overview: command-center/index.md
     - Component Reference: command-center/components.md
