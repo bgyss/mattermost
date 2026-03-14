@@ -79,6 +79,9 @@ nav:
   - API Reference:
     - REST Endpoints: api/rest.md
     - WebSocket Events: api/websocket.md
+  - Testing:
+    - Agent Testing Strategy: testing/agent-testing-strategy.md
+    - CI Platform Comparison: testing/ci-platform-comparison.md
   - Cloud Environment:
     - Cursor Cloud Setup: cloud/cursor-cloud.md
 
