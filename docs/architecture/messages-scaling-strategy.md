@@ -2,7 +2,9 @@
 
 > **Status:** Deferred — not urgent for current deployment scales. Review when a single channel exceeds ~10M posts, total posts table exceeds ~500M rows, or p99 channel load latency exceeds 200ms.
 >
-> **Inspiration:** [How Discord Stores Trillions of Messages](https://discord.com/blog/how-discord-stores-trillions-of-messages) — their evolution from MongoDB → Cassandra → ScyllaDB is the reference arc for this strategy.
+> **Primary reference:** [How Discord Stores Trillions of Messages](https://discord.com/blog/how-discord-stores-trillions-of-messages) — their evolution from MongoDB → Cassandra → ScyllaDB.
+>
+> **Secondary reference:** [Slack's Vitess-based MySQL sharding](https://slack.engineering/scaling-datastores-at-slack-with-vitess/) — a contrasting relational approach, highly relevant to Mattermost's multi-workspace topology.
 
 ---
 
@@ -51,7 +53,11 @@ LIMIT 25 OFFSET 975; -- page 39 — full table scan to skip 975 rows
 
 ---
 
-## What Discord teaches us
+## What the industry teaches us
+
+Two very different companies solved the same problem in opposite ways. Both paths are instructive for Mattermost.
+
+### Discord — NoSQL / wide-column approach
 
 Discord's message storage went through three generations. Each transition was driven by a specific failure mode at scale:
 
@@ -88,6 +94,78 @@ Additionally, Discord built a **Rust data service** layer in front of ScyllaDB t
 - Handle schema evolution without touching the DB layer
 
 **Lesson:** At trillion-message scale, GC latency is observable. Per-core async IO and a caching service layer matter. For Mattermost's scale targets, Cassandra is likely sufficient before ScyllaDB becomes necessary.
+
+**Discord's workload profile:**
+- Massive public servers with thousands of simultaneous writers
+- Append-only message stream; edits and deletes are rare
+- Hot channels have enormous fan-out (one write → millions of readers)
+- No need for cross-channel joins or complex relational queries
+
+---
+
+### Slack — Relational / sharding approach
+
+Slack took the opposite path and stayed relational. Their architecture is a closer match to how Mattermost is typically deployed.
+
+**Origin:** Slack started on a LAMP stack (Linux, Apache, MySQL, PHP). Messages were stored in MySQL from day one and the team scaled that foundation rather than replacing it.
+
+**Sharding strategy — workspace as the unit of isolation:**
+
+```
+Client requests
+      │
+API servers
+      │
+Shard router  ←── workspace_id → shard mapping
+      │
+Vitess (horizontal MySQL)
+      │
+MySQL shard cluster (N nodes)
+```
+
+Each workspace's data — including its entire message history — lives on a single MySQL shard. This means:
+
+- All queries for a workspace are local to one shard; no cross-shard joins
+- A shard can be physically moved to different hardware without affecting other workspaces
+- The blast radius of a database incident is bounded to one shard's tenants
+- Large enterprise customers ("Unified Grid" accounts) can be given a dedicated shard
+
+**Vitess:** Slack adopted [Vitess](https://vitess.io) (the same MySQL sharding layer YouTube uses) to manage the shard topology. Vitess handles connection pooling, query routing, resharding, and online schema changes across the shard cluster — without application code needing to know which physical MySQL node it's talking to.
+
+**Supporting systems:**
+
+| System | Role |
+|--------|------|
+| MySQL + Vitess | Primary store — messages, channels, users, all per-workspace |
+| Redis | Hot cache for session state, presence, recent channel data |
+| Elasticsearch | Full-text message search |
+| S3 / object storage | File attachments and media |
+
+**Slack's workload profile:**
+- Private workspaces with a bounded set of writers per channel
+- Strong consistency expectations — enterprise customers need reliable message ordering and delivery receipts
+- Complex relational queries: channel membership, permissions, search, notifications
+- Tenant (workspace) isolation is a product requirement, not just a performance concern
+
+**Lesson:** When your deployment model is naturally tenant-scoped (one team per workspace) and you need relational queries across your data, sharding the relational database by tenant is simpler and more operationally mature than moving to a distributed NoSQL system.
+
+---
+
+### Discord vs Slack — the key divergence
+
+| | Discord | Slack |
+|--|---------|-------|
+| Primary store | Cassandra → ScyllaDB | MySQL + Vitess |
+| Scaling axis | Append throughput, fan-out | Tenant (workspace) isolation |
+| Data model | Wide-column, time-bucketed | Relational, sharded by workspace |
+| Consistency | Eventual (tunable quorum) | Strong (ACID per shard) |
+| Query flexibility | Low (partition key required) | High (SQL joins, arbitrary filters) |
+| Operational complexity | High (cluster management, CQL) | Medium (Vitess adds abstraction but MySQL is familiar) |
+| Best fit | Massive public communities | Enterprise team collaboration |
+
+The divergence comes down to workload assumptions: Discord has enormous public servers with millions of readers per channel; Slack has private workspaces where the audience per message is small but relational correctness matters more.
+
+**Mattermost sits between these two models** — it has both public community-style channels and private enterprise workspace deployments. This is why the recommended strategy below takes from both playbooks.
 
 ---
 
@@ -163,43 +241,124 @@ session, _ := cluster.CreateSession()
 
 ## Alternatives comparison
 
-Before committing to ScyllaDB/Cassandra, these alternatives are worth evaluating for specific constraints:
+Alternatives fall into four categories. The right choice depends on which failure mode you're solving.
 
-### Apache Cassandra
-**Best for:** Teams already operating Cassandra; when ScyllaDB's C++ dependency or AVX CPU requirement is a constraint.
-**Avoid if:** p99 latency matters and hardware is shared; ScyllaDB is strictly better on the same workload.
+### Category 1: Cassandra-style distributed wide-column stores
 
-### CockroachDB
-**Best for:** If you want PostgreSQL-compatible SQL with horizontal scale — CockroachDB uses the PostgreSQL wire protocol. Transactions, joins, and foreign keys work. It uses Raft for distributed consensus and auto-sharding.
-**Trade-off:** Significantly higher latency than ScyllaDB for the message write pattern (every write goes through Raft consensus). Better fit for metadata (users, channels, permissions) than for the high-throughput append-only message stream. Worth considering as a **replacement for PostgreSQL** rather than as a message store alternative to ScyllaDB.
+Closest to ScyllaDB — same data model, same use case.
 
-### YugabyteDB
-**Best for:** PostgreSQL-compatible distributed SQL, similar positioning to CockroachDB but with both a PostgreSQL-compatible API (YSQL) and a Cassandra-compatible API (YCQL) in one system. Could serve both the relational (metadata) and time-series (messages) workloads on a single cluster.
-**Trade-off:** More operationally complex; less mature than either PostgreSQL or Cassandra. The dual-API approach is appealing but means running one cluster at twice the complexity.
+| Database | Notes | Best for |
+|----------|-------|----------|
+| **Apache Cassandra** | Original; JVM-based; ScyllaDB is a C++ reimplementation | Teams already running Cassandra; devenv (no AVX requirement) |
+| **ScyllaDB** | 10× throughput of Cassandra on same HW; native CDC; Tablets | Production message hot store — recommended |
+| **Google Bigtable / HBase** | Bigtable-style wide-column; managed (Bigtable) or self-hosted (HBase) | GCP-native deployments; HBase if Hadoop stack already present |
+| **DataStax Astra** | Managed Cassandra; serverless tier | When you want Cassandra without operating it |
 
-### FoundationDB + Record Layer
-**Best for:** If you need ACID transactions across arbitrary key ranges with horizontal scale. Apple uses FoundationDB for iCloud. The Record Layer (open-sourced by Apple/FoundationDB) provides a structured record abstraction on top.
-**Trade-off:** Steep operational learning curve; smaller community than Cassandra. Key-value model requires more application-level structure. Not a natural fit for the Mattermost codebase.
+All four share the same fundamental data model (partition key + clustering key + LSM storage) and are optimised for append-heavy, time-series workloads.
 
-### ClickHouse
-**Best for:** **Analytics and search** on message data — not primary storage. ClickHouse is a columnar OLAP database optimised for aggregation queries over large datasets. It would be an excellent store for message analytics (message volume by channel, active user counts, search-adjacent features) but is not suitable as the primary read/write message store.
-**Use case here:** Could sit alongside ScyllaDB as an analytics replica — CDC from ScyllaDB → ClickHouse for admin dashboards and search features.
+---
 
-### Amazon DynamoDB
-**Best for:** Cloud-only Mattermost deployments on AWS where operational simplicity trumps cost. DynamoDB's data model is essentially Cassandra's (partition key + sort key + LSM storage).
-**Trade-off:** Vendor lock-in; expensive at high throughput; no self-hosted option. ScyllaDB Alternator provides the same API self-hosted if lock-in is a concern.
+### Category 2: Cloud-native key-value / document stores
 
-### Summary table
+Common alternatives in modern cloud deployments. Higher operational simplicity at the cost of data model flexibility.
 
-| Database | Model | Best role | Self-hosted | Notes |
-|----------|-------|-----------|-------------|-------|
-| **ScyllaDB** | Wide-column (CQL) | Message hot store | Yes | Recommended for Step 4 |
-| Apache Cassandra | Wide-column (CQL) | Message hot store | Yes | Easier devenv; lower prod throughput |
-| CockroachDB | Distributed SQL | Replace PostgreSQL for metadata | Yes | Not for message stream |
-| YugabyteDB | Distributed SQL + CQL | Both tiers on one cluster | Yes | Higher operational complexity |
-| FoundationDB | KV + Record Layer | Transactional KV at scale | Yes | Steep learning curve |
-| ClickHouse | Columnar OLAP | Analytics replica | Yes | Complements, not replaces ScyllaDB |
-| DynamoDB | Wide-column (proprietary) | Cloud-only message store | No (Alternator for self-host) | Lock-in risk |
+| Database | Model | Notes |
+|----------|-------|-------|
+| **Amazon DynamoDB** | Key-value + sort key; managed | Same LSM data model as Cassandra; no self-hosted option. ScyllaDB Alternator provides the same API self-hosted. |
+| **Azure Cosmos DB** | Multi-model (KV, document, column, graph) | Native to Azure; expensive at high throughput; good for multi-region |
+| **MongoDB Atlas** | Document store with flexible schema | Mattermost started on MongoDB — has come full circle. Suitable for props/metadata; not for the high-throughput message stream |
+| **Couchbase** | Document store + built-in cache tier | Combines cache and store; less suited to the append-only pattern |
+
+---
+
+### Category 3: Distributed SQL (NewSQL)
+
+More relational but horizontally scalable. Attractive if you want SQL semantics at scale — closer to the Slack approach than the Discord approach.
+
+| Database | Compatibility | Notes |
+|----------|--------------|-------|
+| **CockroachDB** | PostgreSQL wire protocol | Raft consensus; strong consistency; better for metadata than for the message stream. Worth considering as a **replacement for PostgreSQL** at scale. |
+| **TiDB** | MySQL-compatible | Separates storage (TiKV) from compute; good operational story; less common in Go ecosystem |
+| **YugabyteDB** | PostgreSQL (YSQL) + Cassandra (YCQL) | Dual API on one cluster is appealing but doubles operational complexity |
+| **MySQL + Vitess** | MySQL wire protocol | **The Slack approach** — shard by workspace, manage with Vitess. Most applicable if Mattermost deploys as isolated workspace instances |
+
+**The Slack/Vitess path specifically:** For Mattermost's self-hosted enterprise deployments, sharding PostgreSQL (or MySQL) by team/workspace is architecturally very close to what Slack does. The unit of sharding maps naturally to Mattermost's `teams` table. This avoids introducing a new database technology entirely — every shard is just a smaller PostgreSQL instance with the full Mattermost schema.
+
+```
+Mattermost Vitess-equivalent:
+  team_id → shard_id → PostgreSQL instance
+
+Write: route by team_id → correct shard
+Read:  same routing; no cross-shard joins needed for most operations
+```
+
+CockroachDB and YugabyteDB can auto-shard without a Vitess-equivalent router layer, at the cost of higher per-operation latency due to distributed consensus.
+
+---
+
+### Category 4: Analytical / complementary stores
+
+Not primary message stores — used alongside whichever primary store you choose.
+
+| Database | Role |
+|----------|------|
+| **ClickHouse** | Columnar OLAP — message analytics, volume by channel, search-adjacent aggregations. Feed via CDC from ScyllaDB or PostgreSQL. Complements; does not replace the primary store. |
+| **Elasticsearch** | Already used optionally in Mattermost for full-text search. Keep as secondary index, not a read path for channel history. |
+| **Redis** | Already used by Mattermost for caching and pub/sub. Natural fit for the token streaming layer (see postgres-scaling-strategy.md). |
+
+---
+
+### Full alternatives summary
+
+| Database | Category | Best role in Mattermost | Self-hosted | Key trade-off |
+|----------|----------|------------------------|-------------|---------------|
+| **ScyllaDB** | Wide-column | Message hot store (Step 4) | Yes | Operational complexity; C++ dep |
+| Apache Cassandra | Wide-column | Message hot store (dev/Step 4) | Yes | Lower throughput than ScyllaDB |
+| Google Bigtable | Wide-column | GCP-native message store | No | Vendor lock-in |
+| DynamoDB | Cloud KV | Cloud-only message store | No (Alternator) | Lock-in; expensive at scale |
+| Azure Cosmos DB | Multi-model | Azure-native deployments | No | Cost; complexity |
+| MongoDB | Document | Props/metadata only | Yes | Not for high-throughput stream |
+| **CockroachDB** | Distributed SQL | Replace PostgreSQL for metadata | Yes | Higher latency than ScyllaDB |
+| **TiDB** | Distributed SQL | MySQL-compatible scale-out | Yes | Less common in Go ecosystem |
+| YugabyteDB | Distributed SQL | Both tiers on one cluster | Yes | Dual-API complexity |
+| **MySQL + Vitess** | Relational + sharding | Slack-style workspace sharding | Yes | Requires Vitess ops expertise |
+| ClickHouse | Columnar OLAP | Analytics replica only | Yes | Not a primary store |
+| Elasticsearch | Search index | Full-text search (already used) | Yes | Not a primary store |
+
+---
+
+## No system uses just one database
+
+A key takeaway from both Discord and Slack is that **production chat systems at scale are always polyglot**. No single database handles every concern well.
+
+```
+Typical modern chat stack:
+
+  Durable message store   →  ScyllaDB / Cassandra  (Discord path)
+                             or MySQL + Vitess       (Slack path)
+  Real-time fan-out       →  Redis Streams or Kafka
+  Full-text search        →  Elasticsearch
+  Hot read cache          →  Redis
+  File / media storage    →  S3 / object storage
+  Analytics               →  ClickHouse (optional)
+```
+
+Mattermost already uses PostgreSQL + Elasticsearch + Redis + S3. The question is not whether to go polyglot (it's already polyglot) but at what point the PostgreSQL message store needs either a sharding layer (Vitess/workspace sharding — the Slack path) or a separate high-throughput append store (ScyllaDB — the Discord path).
+
+---
+
+## Which path is right for Mattermost?
+
+Mattermost occupies a unique middle ground: it's used both as a public community platform (closer to Discord) and as a private enterprise collaboration tool (closer to Slack). The right scaling path depends on the deployment type:
+
+| Deployment type | Dominant workload | Recommended path |
+|-----------------|------------------|-----------------|
+| Large public community server | High write fan-out, many channels | Discord path → ScyllaDB hot store (Step 4) |
+| Enterprise SaaS (many small teams) | Relational queries, tenant isolation | Slack path → PostgreSQL + workspace sharding (Vitess or CockroachDB) |
+| Self-hosted large enterprise | Single large workspace, compliance | Time partitioning + cursor pagination (Steps 1–2) first; ScyllaDB if message volume warrants |
+| Agent-heavy deployments | High write volume from agent posts + task events | ScyllaDB covers both message stream and agent task events |
+
+**For the agent orchestration platform specifically:** Agent-generated messages are write-heavy and append-only — exactly the profile ScyllaDB is designed for. The same ScyllaDB cluster introduced in Step 4 for channel messages can also absorb the `AgentTaskEvents` write load described in the postgres-scaling-strategy document, making the two strategies complementary rather than independent.
 
 ---
 
